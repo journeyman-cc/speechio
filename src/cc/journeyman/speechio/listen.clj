@@ -1,6 +1,11 @@
 (ns cc.journeyman.speechio.listen
   "A consistent interface for things which listen, in order that we can plug and 
-   unplug them easily."
+   unplug them easily.
+   
+   This is not yet quite right; rather than listening to an entire stream and 
+   delivering one monolithic string at the end of it, we need to output a lazy
+   sequence of sentence-like strings, which we can delimit by pauses in the
+   speech, which (at least with the vosk listener) we can already detect."
   (:require [cc.journeyman.speechio.vosk :refer [vosk-listener]]
             [environ.core :refer [env]])
   (:import [clojure.lang AFn]

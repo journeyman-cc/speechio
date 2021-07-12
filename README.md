@@ -26,14 +26,21 @@ The working principle of The Great Game's interaction is intended to be
 
 The objective of the `speechio` library is to provide steps 1, 5 and 6 of that flow.
 
-## State of play
+## State of play: NOT STABLE
+
+### Listening
 
 The [Vosk listener](https://github.com/journeyman-cc/speechio/blob/master/src/cc/journeyman/speechio/vosk.clj) 
-seems to work correctly. Currently I'm having trouble generating .WAV files that Vosk can hear, but I think that's
-a problem with my sound recording, not with Vosk.
+seems to work correctly. Currently I'm having trouble generating .WAV files that Vosk can hear, but I think that's a problem with my sound recording, not with Vosk.
 
-We're getting useful-ish parse trees of text; but we need to do transforms on them before
-they're really useful to us. For example, given as input 
+In any case, the listener function currently consumes a whole audio input stream, 
+and then returns a monolithic string. This is wrong. We need to return a lazy
+sequence of sentence-like chunks, delimited by pauses in the audio.
+
+### Comprehension
+
+We're getting useful-ish parse trees of text; but we need to do transforms on them 
+before they're really useful to us. For example, given as input 
 
 > 'the nearest fair haired swordsmith'
 
@@ -54,6 +61,10 @@ We need to be able to identify 'fair haired' as an adjectival phrase, and that
 both 'fair-haired' and 'nearest' are qualifiers on the smith we're seeking. This 
 is presumably a matter of training the tagger.  
 
+### Generation
+
+Not yet begun.
+
 ## Usage
 
 Your guess is as good as mine.
@@ -63,3 +74,4 @@ Your guess is as good as mine.
 Copyright (c) 2021 Simon Brooke; licenced under the
 [GNU General Public Licence](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html), either version 2 or, at your option, any later version.
 
+**Note that** I'm open to discussing alternative commercial licensing, for commercial projects.
