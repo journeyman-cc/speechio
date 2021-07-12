@@ -1,7 +1,7 @@
-(ns cc.journeyman.speechio.vosk-test
+(ns cc.journeyman.speechio.listeners.vosk-test
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.java.io :refer [input-stream resource]]
-            [cc.journeyman.speechio.vosk :refer [vosk-listener]]))
+            [cc.journeyman.speechio.listeners.vosk :refer [vosk-listener]]))
 
 (deftest numbers-test
   (testing "Currently, the Vosk project's own `test.wav` file is the only one

@@ -1,4 +1,4 @@
-(ns cc.journeyman.speechio.vosk
+(ns cc.journeyman.speechio.listeners.vosk
   "Thin wrapper around `com.alphacephei/vosk`"
   (:require [clojure.data.json :as json]
             [clojure.java.io :refer [as-file input-stream resource]]

@@ -6,6 +6,10 @@ A Clojure library designed to handle audio natural language input and output, pr
 
 Pre-alpha code. Nothing works yet.
 
+## Documentation
+
+[Is here](https://journeyman-cc.github.io/speechio/).
+
 ## Introduction
 
 The core ideas behind The Great Game have always been
