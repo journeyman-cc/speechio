@@ -33,7 +33,7 @@
 (extend Long
   {:as-lisp (fn [o] o)})
 
-(extend PersistentArrayMap 
+(extend PersistentArrayMap
   AsLisp {:as-lisp (fn [o] o)})
 
 (extend Ratio
@@ -47,7 +47,6 @@
    which are likely to interest us."
   [o]
   (let [tree (as-lisp o)]
-  (postwalk 
-        #(if (map? %) (dissoc % :object :type) %)
-        tree
-        )))
+    (postwalk
+     #(if (map? %) (dissoc % :object :type) %)
+     tree)))

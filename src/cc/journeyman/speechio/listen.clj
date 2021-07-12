@@ -1,0 +1,28 @@
+(ns cc.journeyman.speechio.listen
+  "A consistent interface for things which listen, in order that we can plug and 
+   unplug them easily."
+  (:require [cc.journeyman.speechio.vosk :refer [vosk-listener]]
+            [environ.core :refer [env]])
+  (:import [clojure.lang AFn]
+           [java.io InputStream]))
+
+(def ^:dynamic *listener-fn* 
+  "The function which we will use to listen for speech on streams. The idea here
+   is that a listener function is a function of one argument, an input stream with 
+   audio data, which returns as a string any text detected. This should make 
+   listeners pluggable. This is the  socket into which pluggable listeners are 
+   plugged."
+  (fn [^InputStream stream] 
+    (vosk-listener stream {:model-path (env :vosk-model)})))
+
+(defn listen
+  "Listen on this `stream` using this `funtction` (or the value of
+   `*listener-fn*`, if no `function` supplied) and return, as text, any speech 
+   recognised. NOTE: idiomatic use *should not* pass the `function` argument
+   explicitly, but *should* instead bind `*listener-fn*`."
+  ([^InputStream stream ^AFn function]
+  (apply function (list stream)))
+  ([^InputStream stream]
+   (if (fn? *listener-fn*)
+     (listen stream *listener-fn*)
+     (throw (Exception. "No valid listener function")))))

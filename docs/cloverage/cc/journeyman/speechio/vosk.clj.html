@@ -1,0 +1,272 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../../../coverage.css"/>  <title> cc/journeyman/speechio/vosk.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;cc.journeyman.speechio.vosk
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;&quot;Thin&nbsp;wrapper&nbsp;around&nbsp;`com.alphacephei&#x2F;vosk`&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[clojure.data.json&nbsp;:as&nbsp;json]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.java.io&nbsp;:refer&nbsp;[as-file&nbsp;input-stream&nbsp;resource]]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.string&nbsp;:as&nbsp;s]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.walk&nbsp;:refer&nbsp;[keywordize-keys]]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[environ.core&nbsp;:refer&nbsp;[env]]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[taoensso.timbre&nbsp;:refer&nbsp;[debug&nbsp;error&nbsp;log&nbsp;trace]])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;[clojure.lang&nbsp;Associative]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[java.io&nbsp;BufferedInputStream&nbsp;InputStream&nbsp;IOException]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[javax.sound.sampled&nbsp;AudioSystem&nbsp;UnsupportedAudioFileException]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[org.vosk&nbsp;Model&nbsp;Recognizer]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                013&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                014&nbsp;&nbsp;(defn-&nbsp;log-and-return-text
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;[vosk-result]
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[r&nbsp;(keywordize-keys&nbsp;(json&#x2F;read-str&nbsp;vosk-result))]
+                </span><br/>
+<span class="covered" title="17 out of 17 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(debug&nbsp;&quot;Read:&nbsp;&quot;&nbsp;r)
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:text&nbsp;r)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                020&nbsp;&nbsp;(defn-&nbsp;assemble-string
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&quot;Form&nbsp;a&nbsp;new&nbsp;string&nbsp;from&nbsp;`body`&nbsp;and&nbsp;`extension`,&nbsp;adding&nbsp;a&nbsp;space&nbsp;between&nbsp;them
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;when&nbsp;`last-empty?`&nbsp;is&nbsp;false.&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;[body&nbsp;extension]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;(s&#x2F;join
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&nbsp;&quot;
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[body&nbsp;(log-and-return-text&nbsp;extension)]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                027&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                028&nbsp;&nbsp;(defn-&nbsp;listen-frag
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&quot;Listen&nbsp;to&nbsp;the&nbsp;fragment&nbsp;of&nbsp;sound&nbsp;represented&nbsp;by&nbsp;the&nbsp;first&nbsp;`nbytes`&nbsp;of&nbsp;these
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`bytes`&nbsp;using&nbsp;this&nbsp;`regogniser`&nbsp;to&nbsp;build&nbsp;on&nbsp;this&nbsp;text&nbsp;`result`.&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;[nbytes&nbsp;bytes&nbsp;recogniser&nbsp;to-extend]
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;(assemble-string
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to-extend
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond&nbsp;(neg?&nbsp;nbytes)&nbsp;(.getFinalResult&nbsp;recogniser)
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.acceptWaveForm&nbsp;recogniser&nbsp;bytes&nbsp;nbytes)&nbsp;(.getResult&nbsp;recogniser)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;(.getPartialResult&nbsp;recogniser))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;(defn&nbsp;vosk-listener
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;&quot;A&nbsp;listener&nbsp;function&nbsp;using&nbsp;`vosk`&nbsp;as&nbsp;the&nbsp;sound-to-text&nbsp;stage.&nbsp;Listen&nbsp;on&nbsp;this
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`stream`&nbsp;and&nbsp;interpret&nbsp;the&nbsp;input&nbsp;using&nbsp;the&nbsp;model&nbsp;indicated&nbsp;by&nbsp;the
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`:model-path`&nbsp;value&nbsp;in&nbsp;this&nbsp;`config`.&nbsp;If&nbsp;no&nbsp;config&nbsp;is&nbsp;supplied,&nbsp;will&nbsp;look&nbsp;in
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;environment&nbsp;for&nbsp;an&nbsp;environment&nbsp;variable&nbsp;`VOSK_MODEL`.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Heavily&nbsp;cribbed&nbsp;from&nbsp;the&nbsp;DecoderDemo&nbsp;given
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[here](https:&#x2F;&#x2F;github.com&#x2F;alphacep&#x2F;vosk-api&#x2F;blob&#x2F;master&#x2F;java&#x2F;demo&#x2F;src&#x2F;main&#x2F;java&#x2F;org&#x2F;vosk&#x2F;demo&#x2F;DecoderDemo.java).&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;([^InputStream&nbsp;stream&nbsp;^Associative&nbsp;config]
+                </span><br/>
+<span class="partial" title="13 out of 15 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(and&nbsp;(string?&nbsp;(:model-path&nbsp;config))
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.exists&nbsp;(as-file&nbsp;(:model-path&nbsp;config)))
+                </span><br/>
+<span class="covered" title="5 out of 5 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.isDirectory&nbsp;(as-file&nbsp;(:model-path&nbsp;config))))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(try
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[ais&nbsp;(AudioSystem&#x2F;getAudioInputStream
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(BufferedInputStream.&nbsp;stream))
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bytes&nbsp;(make-array&nbsp;Byte&#x2F;TYPE&nbsp;4096);;&nbsp;(byte-array&nbsp;4096)
+                </span><br/>
+<span class="covered" title="6 out of 6 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;recogniser&nbsp;(Recognizer.&nbsp;(Model.&nbsp;(:model-path&nbsp;config))&nbsp;16000)]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(loop&nbsp;[nbytes&nbsp;(.read&nbsp;ais&nbsp;bytes)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result&nbsp;&quot;&quot;]
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[result&#x27;&nbsp;(listen-frag&nbsp;nbytes&nbsp;bytes&nbsp;recogniser&nbsp;result)]
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(neg?&nbsp;nbytes)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(s&#x2F;trim&nbsp;(s&#x2F;replace&nbsp;result&#x27;&nbsp;#&quot;&nbsp;+&quot;&nbsp;&quot;&nbsp;&quot;))
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(recur&nbsp;(.read&nbsp;ais&nbsp;bytes)&nbsp;result&#x27;)))))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;UnsupportedAudioFileException&nbsp;e
+                </span><br/>
+<span class="not-covered" title="0 out of 17 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error&nbsp;&quot;Audio&nbsp;file&nbsp;problem?&quot;&nbsp;e)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;e))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;IOException&nbsp;f
+                </span><br/>
+<span class="not-covered" title="0 out of 17 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error&nbsp;&quot;IO&nbsp;problem?&quot;&nbsp;f)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;f))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(catch&nbsp;Exception&nbsp;any
+                </span><br/>
+<span class="not-covered" title="0 out of 17 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error&nbsp;&quot;Unexpected&nbsp;problem&quot;&nbsp;any)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;any)))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw&nbsp;(IllegalArgumentException.&nbsp;&quot;Config&nbsp;for&nbsp;`vosk-listener`&nbsp;must&nbsp;be&nbsp;a&nbsp;map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with&nbsp;a&nbsp;key&nbsp;`:model-path`&nbsp;which&nbsp;must&nbsp;be&nbsp;a&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;and&nbsp;must&nbsp;point&nbsp;to&nbsp;a&nbsp;directory.&quot;))))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;([^InputStream&nbsp;stream]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                074&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(env&nbsp;:vosk-model)
+                </span><br/>
+<span class="covered" title="8 out of 8 forms covered">
+                075&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(vosk-listener&nbsp;stream&nbsp;{:model-path&nbsp;(env&nbsp;:vosk-model)})
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(throw
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Exception.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;No&nbsp;config&nbsp;supplied&nbsp;and&nbsp;no&nbsp;`VOSK_MODEL`&nbsp;found&nbsp;in&nbsp;environment.&quot;)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                079&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                080&nbsp;&nbsp;(defn&nbsp;decoder-demo
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;&quot;Demo&nbsp;using&nbsp;the&nbsp;`test.wav`&nbsp;file&nbsp;supplied&nbsp;with&nbsp;the&nbsp;vosk&nbsp;distribution.&nbsp;To&nbsp;use&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this&nbsp;(unless&nbsp;your&nbsp;machine&nbsp;is&nbsp;set&nbsp;up&nbsp;exactly&nbsp;like&nbsp;mine),&nbsp;pass&nbsp;in&nbsp;a&nbsp;path&nbsp;to&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where&nbsp;you&nbsp;have&nbsp;unpacked&nbsp;your&nbsp;voice&nbsp;model.&nbsp;Models&nbsp;can&nbsp;be&nbsp;downloaded&nbsp;from
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[here](https:&#x2F;&#x2F;alphacephei.com&#x2F;vosk&#x2F;models).&quot;
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;([]&nbsp;(decoder-demo&nbsp;&quot;&#x2F;home&#x2F;simon&#x2F;tmp&#x2F;vosk-model-en-us-daanzu-20200905&quot;))
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;([model-path]
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(vosk-listener&nbsp;(input-stream&nbsp;(resource&nbsp;&quot;sounds&#x2F;test.wav&quot;))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{:model-path&nbsp;model-path})))
+                </span><br/>
+ </body>
+</html>

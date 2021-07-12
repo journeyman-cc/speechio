@@ -1,0 +1,206 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../../../coverage.css"/>  <title> cc/journeyman/speechio/canonicalise.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;cc.journeyman.speechio.canonicalise
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;&quot;Replace&nbsp;words&nbsp;and&nbsp;phrases&nbsp;in&nbsp;provided&nbsp;input&nbsp;with&nbsp;preferred&nbsp;equivalents&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;drawn&nbsp;from&nbsp;a&nbsp;thesaurus.&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;Broadly,&nbsp;the&nbsp;problem&nbsp;with&nbsp;allowing&nbsp;unconstrained
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;input&nbsp;is&nbsp;that&nbsp;the&nbsp;words&nbsp;that&nbsp;users&nbsp;choose&nbsp;to&nbsp;use&nbsp;for&nbsp;things&nbsp;we&nbsp;actually&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;know&nbsp;about&nbsp;may&nbsp;not&nbsp;be&nbsp;our&nbsp;preferred&nbsp;words.&nbsp;This&nbsp;namespace&nbsp;is&nbsp;intended&nbsp;to
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;provide&nbsp;a&nbsp;mechanism&nbsp;to&nbsp;canonicalise&nbsp;phrases&nbsp;and&nbsp;words&nbsp;in&nbsp;the&nbsp;input.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;&nbsp;The&nbsp;input&nbsp;is&nbsp;expected&nbsp;to&nbsp;be&nbsp;a&nbsp;lispified&nbsp;Stanford&nbsp;NLP&nbsp;parse&nbsp;tree;&nbsp;the&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;output&nbsp;is&nbsp;expected&nbsp;to&nbsp;be&nbsp;a&nbsp;new&nbsp;parse&nbsp;tree,&nbsp;with&nbsp;the&nbsp;difference&nbsp;being&nbsp;that
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;the&nbsp;returned&nbsp;tree&nbsp;may&nbsp;have&nbsp;nodes&nbsp;marked&nbsp;:AMBIG,&nbsp;whose&nbsp;children&nbsp;are&nbsp;different&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                013&nbsp;&nbsp;&nbsp;possible&nbsp;canonical&nbsp;interpretations.&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;[clojure.lang&nbsp;Atom&nbsp;PersistentArrayMap]))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                015&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                016&nbsp;&nbsp;(defprotocol&nbsp;Thesaurus
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;(lookup&nbsp;[this&nbsp;speech-part]&nbsp;&quot;Return&nbsp;the&nbsp;canonical&nbsp;expression&nbsp;equivalent&nbsp;to
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this&nbsp;`speech-part`,&nbsp;or&nbsp;just&nbsp;this&nbsp;`speech-part`
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;none&nbsp;are&nbsp;found.&nbsp;`speech-part`&nbsp;is&nbsp;expected&nbsp;to&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;be&nbsp;a&nbsp;lispified&nbsp;(see&nbsp;`as-lisp`)&nbsp;Stanford&nbsp;NLP&nbsp;parse
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                021&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tree.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                022&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                023&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;multiple&nbsp;canonical&nbsp;equivalents&nbsp;are&nbsp;found,&nbsp;return
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;new&nbsp;node&nbsp;whose&nbsp;`:label`&nbsp;value&nbsp;is&nbsp;`:AMBIG`&nbsp;and&nbsp;whose
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`:children`&nbsp;value&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;the&nbsp;possible&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;equivalents.&quot;))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                027&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                028&nbsp;&nbsp;(extend&nbsp;Atom
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;Thesaurus
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;It&#x27;s&nbsp;highly&nbsp;likely&nbsp;that&nbsp;in&nbsp;practice&nbsp;we&#x27;re&nbsp;going&nbsp;to&nbsp;want&nbsp;to&nbsp;add&nbsp;to&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;thesauri,&nbsp;and,&nbsp;at&nbsp;least&nbsp;during&nbsp;development,&nbsp;to&nbsp;do&nbsp;so&nbsp;without&nbsp;restarting.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;So&nbsp;it&#x27;s&nbsp;probably&nbsp;best&nbsp;to&nbsp;be&nbsp;able&nbsp;to&nbsp;look&nbsp;&#x27;through&#x27;&nbsp;an&nbsp;atom,&nbsp;without
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;worrying&nbsp;too&nbsp;much&nbsp;about&nbsp;what&nbsp;that&nbsp;atom&nbsp;is&nbsp;bound&nbsp;to.
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;{:lookup&nbsp;(fn&nbsp;[this&nbsp;speechpart]
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(lookup&nbsp;(deref&nbsp;this)&nbsp;speechpart))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                036&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                037&nbsp;&nbsp;(extend&nbsp;PersistentArrayMap
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;&nbsp;&nbsp;Thesaurus
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;{:lookup&nbsp;(fn&nbsp;[this&nbsp;speechpart]
+                </span><br/>
+<span class="not-covered" title="0 out of 9 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[k&nbsp;(if&nbsp;(keyword?&nbsp;speechpart)&nbsp;speechpart&nbsp;(str&nbsp;speechpart))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l&nbsp;(:label&nbsp;speechpart)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v&nbsp;(this&nbsp;k)]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond&nbsp;v&nbsp;v
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map?&nbsp;speechpart)
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                045&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;speechpart
+                </span><br/>
+<span class="not-covered" title="0 out of 8 forms covered">
+                046&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:label&nbsp;(or&nbsp;(this&nbsp;l)&nbsp;l)&nbsp;&nbsp;
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:children&nbsp;(mapv&nbsp;#(lookup&nbsp;this&nbsp;%)
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:children&nbsp;speechpart)))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;speechpart)))})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                050&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                051&nbsp;&nbsp;(def&nbsp;default-thesaurus-content
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&quot;For&nbsp;testing&nbsp;and&nbsp;development&nbsp;only!&quot;
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;{;;&nbsp;we&#x27;ll&nbsp;assume&nbsp;that&nbsp;when&nbsp;a&nbsp;user&nbsp;talks&nbsp;about&nbsp;a&nbsp;smith&nbsp;without&nbsp;other&nbsp;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;qualification&nbsp;they&nbsp;mean&nbsp;a&nbsp;sword&nbsp;smith.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:smith&nbsp;:swordsmith
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;we&#x27;ll&nbsp;assume&nbsp;that&nbsp;any&nbsp;blacksmith&nbsp;can&nbsp;make&nbsp;a&nbsp;sword&nbsp;(although&nbsp;perhaps&nbsp;not
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                057&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;a&nbsp;good&nbsp;one).&nbsp;This&nbsp;is&nbsp;obviously&nbsp;not&nbsp;a&nbsp;good&nbsp;assumption&nbsp;if&nbsp;the&nbsp;user&nbsp;wants
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;their&nbsp;horse&nbsp;shod,&nbsp;but&nbsp;this&nbsp;thesaurus&nbsp;is&nbsp;just&nbsp;to&nbsp;play&nbsp;with&nbsp;ideas.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:blacksmith&nbsp;:swordsmith
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;the&nbsp;canonical&nbsp;form&nbsp;of&nbsp;`swordsmith`&nbsp;is&nbsp;not&nbsp;hyphenated.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:sword-smith&nbsp;:swordsmith
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;if&nbsp;the&nbsp;user&nbsp;says&nbsp;&quot;the&nbsp;sword&nbsp;smith&quot;,&nbsp;we&#x27;ll&nbsp;get&nbsp;a&nbsp;noun&nbsp;phrase
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;{:label&nbsp;:NP,&nbsp;:children&nbsp;[{:label&nbsp;:DT,&nbsp;:children&nbsp;[{:label&nbsp;:the,&nbsp;:children&nbsp;[]}]}&nbsp;{:label&nbsp;:NN,&nbsp;:children&nbsp;[{:label&nbsp;:sword,&nbsp;:children&nbsp;[]}]}&nbsp;{:label&nbsp;:NN,&nbsp;:children&nbsp;[{:label&nbsp;:smith,&nbsp;:children&nbsp;[]}]}]}&quot;&nbsp;:swordsmith})
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                064&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                065&nbsp;&nbsp;(def&nbsp;test-thesaurus&nbsp;(atom&nbsp;default-thesaurus-content))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                066&nbsp;&nbsp;
+                </span><br/>
+ </body>
+</html>

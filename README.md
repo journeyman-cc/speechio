@@ -15,9 +15,24 @@ The core ideas behind The Great Game have always been
 
 The core essay to read to understand this sub-project is [Voice Acting Considered Harmful](https://simon-brooke.github.io/the-great-game/codox/Voice-acting-considered-harmful.html)
 
+The working principle of The Great Game's interaction is intended to be
+
+1. Alexa/Siri style speech interpretation;
+2. A decision on whether to co-operate based on the particular NPC's general demeanor and particular attitude to the player;
+3. A search of the game state and lore for relevant information;
+4. A filtering of the results based on what the particular NPC can be expected to know;
+5. Generation of a textual response from those results based on a library of templates which defines the particular NPC's dialect and style of speech;
+6. Production of audio using a [Lyrebird]{https://www.descript.com/overdub?lyrebird=true) style generated voice.
+
+The objective of the `speechio` library is to provide steps 1, 5 and 6 of that flow.
+
 ## State of play
 
-We're getting useful-ish parse trees; but we need to do transforms on them before
+The [Vosk listener](https://github.com/journeyman-cc/speechio/blob/master/src/cc/journeyman/speechio/vosk.clj) 
+seems to work correctly. Currently I'm having trouble generating .WAV files that Vosk can hear, but I think that's
+a problem with my sound recording, not with Vosk.
+
+We're getting useful-ish parse trees of text; but we need to do transforms on them before
 they're really useful to us. For example, given as input 
 
 > 'the nearest fair haired swordsmith'
