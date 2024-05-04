@@ -21,9 +21,9 @@
     (vosk-listener stream {:model-path (env :vosk-model)})))
 
 (defn listen
-  "Listen on this `stream` using this `funtction` (or the value of
+  "Listen on this `stream` using this `function` (or the value of
    `*listener-fn*`, if no `function` supplied) and return, as text, any speech 
-   recognised. NOTE: idiomatic use *should not* pass the `function` argument
+   recognised. **NOTE:** idiomatic use *should not* pass the `function` argument
    explicitly, but *should* instead bind `*listener-fn*`."
   ([^InputStream stream ^AFn function]
   (apply function (list stream)))

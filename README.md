@@ -6,9 +6,28 @@ A Clojure library designed to handle audio natural language input and output, pr
 
 Pre-alpha code. Nothing works yet.
 
+## Architecture
+
+### Concept
+
+The basic concept is that `speechio` is a bag on the side of a game engine, running in a separate process; it listens (on an audio stream) for, and interprets, speach from the user, and passes that speach as a parse tree to a separate library `conversationalist`, which runs in the `speechio` process, and generates appropriate responses for the non-player character addressed to respond with.
+
+There is a necessary API between `conversationalist` and the game engine, which is not yet fleshed out. `Conversationalist` must be able to query the game state and lore using a query language which is essentially SQL-like, and must additionally be able to instruct the game engine to direct a specific non-player character to speak an appropriate response.
+
+The reason for having the game engine actually speak the constructed response is because the game engine has control of the animation of the character models, and needs to deal with things like lip-sync.
+
+### Rationale
+
+The reason for implementing it like this is
+
+1. to be able to deliver a proof of concept as a mod to an existing game;
+2. to make the system usable with multiple different game engines.
+
+A triple-A developer wanting to adopt this system is extremely likely to rewrite `speechio/conversationalist` for their own game engine, to get better integration and performance; and that's perfectly fine, it's exactly why I'm making it open source. But hopefully the open source version will be at least good enough that indie developers will be able to use it directly, and for that reason it's desirable that porting it to a different game engine should require rewriting as little as possible - essentially just the query language and speaking bit.
+
 ## Documentation
 
-[Is here](https://journeyman-cc.github.io/speechio/).
+[Further documentation is here](https://journeyman-cc.github.io/speechio/).
 
 ## Introduction
 
@@ -28,7 +47,7 @@ The working principle of The Great Game's interaction is intended to be
 5. Generation of a textual response from those results based on a library of templates which defines the particular NPC's dialect and style of speech;
 6. Production of audio using a [Lyrebird]{https://www.descript.com/overdub?lyrebird=true) style generated voice.
 
-The objective of the `speechio` library is to provide steps 1, 5 and 6 of that flow.
+The objective of the `speechio` library is to provide steps 1 and 6 of that flow.
 
 ## State of play: NOT STABLE
 

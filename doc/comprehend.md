@@ -1,5 +1,7 @@
 # Comprehend
 
+**NOTE THAT** the comprehend stage is sort of awkwardly shared between client side (in our case speechio) and server side (in our case conversationalist). In order to parse sentences, it will be useful for speechio to know what pronouns should be assumed to refer to, but it is (partly) conversationalist which can work out what in the game world pronouns refer to. So in the package passed back from conversationalist to speechio, we need pronoun bindings.
+
 ## General design
 
 The Comprehend stage in [the pipeline](intro.html) takes sentences or partial sentences as strings from the [listen](listen.html) stage, and delivers them as semantic structures to the distribute stage (not part of `speechio`).
